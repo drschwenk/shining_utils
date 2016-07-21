@@ -40,6 +40,10 @@ def get_category_color(category):
     return hex_to_rgb(color_map[category])
 
 
+rect_types = ['text']
+poly_types = ['blobs', 'arrows', 'backgroundBlobs']
+
+
 def build_relationships_to_draw(image_annotations):
 
     def flatten_const_dict(image_annotations):
@@ -51,10 +55,7 @@ def build_relationships_to_draw(image_annotations):
                 flattened_const_dict.update(annotations)
         return flattened_const_dict
     
-    rect_types = ['text']
-    poly_types = ['blobs', 'arrows', 'backgroundBlobs']
     flattened_const_dict = flatten_const_dict(image_annotations)
-    
     relationships_with_props = {}
     for rel_id, relationship in image_annotations['relationships'].items():
         involved_const_ids = rel_id.split('+')
@@ -69,15 +70,15 @@ def build_relationships_to_draw(image_annotations):
     return relationships_with_props
 
 
-def visualize_relationship(relationships_to_viz, image_annotation, output_base_dir, image_dir):
+def visualize_relationships(relationships_to_viz, image_name, output_base_dir, image_dir):
     
-    image_result_dir = output_base_dir + image_annotation.split('.')[0] + '/'
+    image_result_dir = output_base_dir + image_name.split('.')[0] + '/'
     try:
         os.mkdir(image_result_dir)
     except OSError as e:
         pass
     
-    pil_image = Image.open(image_dir + image_annotation)
+    pil_image = Image.open(image_dir + image_name)
     for rel_id, relationship in relationships_to_viz.items():
         open_cv_image = np.array(pil_image) 
         open_cv_image = open_cv_image[:, :, ::-1].copy() 
@@ -87,5 +88,14 @@ def visualize_relationship(relationships_to_viz, image_annotation, output_base_d
                 ul, lr =  constituent['rectangle']
                 cv2.rectangle(open_cv_image, tuple(ul), tuple(lr), color=get_category_color(rel_category), thickness=2)
             if constituent['type'] in poly_types:
-                draw_polygon_on_image(open_cv_image, constituent['polygon'], color = get_category_color(rel_category))
+                draw_polygon_on_image(open_cv_image, constituent['polygon'], color=get_category_color(rel_category))
         cv2.imwrite(image_result_dir + rel_id.replace('+', '_') + '.png', open_cv_image)
+
+
+def visualize_image_batch(image_dir, annotation_dir, output_dir):
+    for image in glob.glob(annotation_dir + '*'):
+        image_name = image.split('.json')[0].split('/')[-1]
+        image_annotations = load_local_annotation(image_name, annotation_dir)
+        to_visualize = build_relationships_to_draw(image_annotations)
+        visualize_relationships(to_visualize, image_name, output_dir, image_dir)
+
