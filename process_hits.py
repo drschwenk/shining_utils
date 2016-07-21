@@ -46,6 +46,16 @@ def form_hit_url(book_name, page_n):
     return full_url
 
 
+def make_diagram_hit_urls(image_names, img_dim_lookup, url_base, completed_images):
+    def h_dim(image_name):
+        return str(img_dim_lookup[image_name][0])
+
+    def v_dim(image_name):
+        return str(img_dim_lookup[image_name][1])
+
+    return [url_base + image + '&hd=' + h_dim(image) + '&vd=' + v_dim(image) for image in image_names if image not in completed_images]
+
+
 def make_book_group_urls(book_groups, book_group, ranges):
     """
     Makes urls for many pages and books in a particular group.

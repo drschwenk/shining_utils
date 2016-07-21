@@ -26,7 +26,7 @@ def build_relationships(rel_dict):
         new_relationships[rel_id] = {
             'id': rel_id,
             'category': involved_boxes['category'],
-            'has_directionality': True,  # Ask about this
+            'has_directionality': False,  # Ask about this
             'origin': ordered_boxes[0][1]
         }
         if len(ordered_boxes) > 1:
@@ -46,8 +46,8 @@ def build_and_write_relationships(page_df, anno_dir, new_anno_dir):
 def append_to_annotations(base_dir, dest_dir, anno_file, new_annotations):
     with open(base_dir + anno_file) as f:
         base_anno = json.load(f)
-        
+    print len(new_annotations)
     base_anno['relationships'] = new_annotations
     
     with open(dest_dir + anno_file, 'w') as f:
-        json.dump(base_anno, f)
+        json.dump(base_anno, f, indent=4, sort_keys=True)
