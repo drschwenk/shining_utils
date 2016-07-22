@@ -50,13 +50,12 @@ def get_category_color(category):
     return rgb_flipped
 
 
-def build_relationships_to_draw(image_annotations):
+def build_relationships_to_draw(image_annotations, image_name):
 
     def flatten_const_dict(image_annotations):
         types_annotated = rect_types + poly_types
         flattened_const_dict = {}
         for anno_type, annotations in image_annotations.items():
-            anno_plus_type = {k:v.update({'type': anno_type}) for k, v in annotations.items()}
             if anno_type in types_annotated:
                 flattened_const_dict.update(annotations)
         return flattened_const_dict
@@ -66,7 +65,11 @@ def build_relationships_to_draw(image_annotations):
     for rel_id, relationship in image_annotations['relationships'].items():
         involved_const_ids = rel_id.split('+')
         rel_category = relationship['category']
-        involved_const = {k: flattened_const_dict[k] for k in involved_const_ids}
+        try:
+            involved_const = {k: flattened_const_dict[k] for k in involved_const_ids}
+        except KeyError as e:
+            print image_name
+            print e
         relationships_with_props[rel_id] = {
             "rel_id": rel_id,
             "category": rel_category,
@@ -103,7 +106,7 @@ def visualize_image_batch(image_dir, annotation_dir, output_dir):
     for image in glob.glob(annotation_dir + '*'):
         image_name = image.split('.json')[0].split('/')[-1]
         image_annotations = load_local_annotation(image_name, annotation_dir)
-        to_visualize = build_relationships_to_draw(image_annotations)
+        to_visualize = build_relationships_to_draw(image_annotations, image_name)
         visualize_relationships(to_visualize, image_name, output_dir, image_dir)
 
 

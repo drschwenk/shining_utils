@@ -40,13 +40,14 @@ def build_and_write_relationships(page_df, anno_dir, new_anno_dir):
     anno_file_name = pd.unique(page_df['page'])[0] + '.json'
     rel_dict = build_relationship_dict(page_df)
     rel_to_add = build_relationships(rel_dict)
-    append_to_annotations(anno_dir, new_anno_dir, anno_file_name ,rel_to_add)
+    append_to_annotations(anno_dir, new_anno_dir, anno_file_name, rel_to_add)
 
 
 def append_to_annotations(base_dir, dest_dir, anno_file, new_annotations):
     with open(base_dir + anno_file) as f:
         base_anno = json.load(f)
-    print len(new_annotations)
+    # print(anno_file)
+    # print len(new_annotations)
     base_anno['relationships'] = new_annotations
     
     with open(dest_dir + anno_file, 'w') as f:
