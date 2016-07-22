@@ -3,7 +3,12 @@ import cv2
 import json
 import glob
 import os
+import argparse
 import PIL.Image as Image
+
+
+rect_types = ['text']
+poly_types = ['blobs', 'arrows', 'backgroundBlobs']
 
 
 def load_local_annotation(image_name, annotation_dir):
@@ -21,27 +26,28 @@ def draw_polygon_on_image(image, polygon, color):
 def hex_to_rgb(hex_color):
     hex_color = hex_color.lstrip('#')
     lv = len(hex_color)
-    return tuple(int(hex_color[i:i + lv // 3], 16) for i in range(0, lv, lv // 3))
+    rgb_color = tuple(int(hex_color[i:i + lv // 3], 16) for i in range(0, lv, lv // 3))
+    return rgb_color
 
 
 def get_category_color(category):
-    color_map ={}    
-    color_map["unlabeled"] = "#8c9296"
-    color_map["IntraObjectLinkage"] = "#e7d323"
-    color_map["IntraObjectLabel"] = "#286a8e"
-    color_map["InterObjectLinkage"] = "#3fb62c"
-    color_map["IntraObjectLoop"] = "#BA70CC"
-    color_map["arrowDescriptor"] = "#e77423"
-    color_map['intraObjectRegionLabel'] = "#696100"
-    color_map['sectionTitle'] = "#ff00ff"
-    color_map['imageTitle'] = "#8256AD"
-    color_map['imageCaption'] = "#ff3300"
-    color_map['textMisc'] = "#cccc00"
-    return hex_to_rgb(color_map[category])
+    color_map = {
+        "unlabeled": "#8c9296",
+        "IntraObjectLinkage": "#e7d323",
+        "IntraObjectLabel": "#286a8e",
+        "InterObjectLinkage": "#3fb62c",
+        "IntraObjectLoop": "#BA70CC",
+        "arrowDescriptor": "#e77423",
+        'intraObjectRegionLabel': "#696100",
+        'sectionTitle': "#ff00ff",
+        'imageTitle': "#8256AD",
+        'imageCaption': "#ff3300",
+        'textMisc': "#cccc00"
+    }
 
-
-rect_types = ['text']
-poly_types = ['blobs', 'arrows', 'backgroundBlobs']
+    rgb_color = hex_to_rgb(color_map[category])
+    rgb_flipped = rgb_color[::-1]
+    return rgb_flipped
 
 
 def build_relationships_to_draw(image_annotations):
@@ -60,7 +66,7 @@ def build_relationships_to_draw(image_annotations):
     for rel_id, relationship in image_annotations['relationships'].items():
         involved_const_ids = rel_id.split('+')
         rel_category = relationship['category']
-        involved_const = {k:flattened_const_dict[k] for k in involved_const_ids}
+        involved_const = {k: flattened_const_dict[k] for k in involved_const_ids}
         relationships_with_props[rel_id] = {
             "rel_id": rel_id,
             "category": rel_category,
@@ -85,11 +91,12 @@ def visualize_relationships(relationships_to_viz, image_name, output_base_dir, i
         rel_category = relationship['category']
         for c_id, constituent in relationship['constituents'].items():
             if constituent['type'] in rect_types:
-                ul, lr =  constituent['rectangle']
+                ul, lr = constituent['rectangle']
                 cv2.rectangle(open_cv_image, tuple(ul), tuple(lr), color=get_category_color(rel_category), thickness=2)
             if constituent['type'] in poly_types:
                 draw_polygon_on_image(open_cv_image, constituent['polygon'], color=get_category_color(rel_category))
-        cv2.imwrite(image_result_dir + rel_id.replace('+', '_') + '.png', open_cv_image)
+        image_path = image_result_dir + rel_category + '_' + rel_id.replace('+', '_') + '.png'
+        cv2.imwrite(image_path, open_cv_image)
 
 
 def visualize_image_batch(image_dir, annotation_dir, output_dir):
@@ -99,3 +106,16 @@ def visualize_image_batch(image_dir, annotation_dir, output_dir):
         to_visualize = build_relationships_to_draw(image_annotations)
         visualize_relationships(to_visualize, image_name, output_dir, image_dir)
 
+
+def main():
+    parser = argparse.ArgumentParser(description='Writes an image for each relationship in a directory of annotations')
+    parser.add_argument('imgdir', help='path to shining diagram images', type=str)
+    parser.add_argument('anndir', help='path to directory with annotations', type=str)
+    parser.add_argument('outdir', help='directory to write output images', type=str)
+    args = parser.parse_args()
+    paths = [args.imgdir, args.anndir, args.outdir]
+    paths = [path + '/' for path in paths]
+    visualize_image_batch(*paths)
+
+if __name__ == "__main__":
+    main()
