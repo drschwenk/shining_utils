@@ -7,7 +7,7 @@ import argparse
 import PIL.Image as Image
 
 
-rect_types = ['text']
+rect_types = ['text', 'arrowHeads']
 poly_types = ['blobs', 'arrows', 'backgroundBlobs']
 
 
@@ -33,10 +33,11 @@ def hex_to_rgb(hex_color):
 def get_category_color(category):
     color_map = {
         "unlabeled": "#8c9296",
-        "IntraObjectLinkage": "#e7d323",
-        "IntraObjectLabel": "#286a8e",
-        "InterObjectLinkage": "#3fb62c",
-        "IntraObjectLoop": "#BA70CC",
+        "intraObjectLinkage": "#e7d323",
+        "intraObjectTextLinkage": "#e7d323",
+        "intraObjectLabel": "#286a8e",
+        "interObjectLinkage": "#3fb62c",
+        "intraObjectLoop": "#BA70CC",
         "arrowDescriptor": "#e77423",
         'intraObjectRegionLabel': "#696100",
         'sectionTitle': "#ff00ff",
@@ -53,9 +54,10 @@ def get_category_color(category):
 def build_relationships_to_draw(image_annotations, image_name):
 
     def flatten_const_dict(image_annotations):
-        types_annotated = rect_types + poly_types
+        types_annotated = rect_types + poly_types + ['imageConsts']
         flattened_const_dict = {}
         for anno_type, annotations in image_annotations.items():
+            anno_plus_type = {k: v.update({'type': anno_type}) for k, v in annotations.items()}
             if anno_type in types_annotated:
                 flattened_const_dict.update(annotations)
         return flattened_const_dict
@@ -65,6 +67,7 @@ def build_relationships_to_draw(image_annotations, image_name):
     for rel_id, relationship in image_annotations['relationships'].items():
         involved_const_ids = rel_id.split('+')
         rel_category = relationship['category']
+
         try:
             involved_const = {k: flattened_const_dict[k] for k in involved_const_ids}
         except KeyError as e:
@@ -91,7 +94,9 @@ def visualize_relationships(relationships_to_viz, image_name, output_base_dir, i
     for rel_id, relationship in relationships_to_viz.items():
         open_cv_image = np.array(pil_image) 
         open_cv_image = open_cv_image[:, :, ::-1].copy() 
-        rel_category = relationship['category']
+        rel_category = relationship['category'].replace('misc', 'textMisc')
+        if rel_category == 'arrowHeadTail':
+            break
         for c_id, constituent in relationship['constituents'].items():
             if constituent['type'] in rect_types:
                 ul, lr = constituent['rectangle']

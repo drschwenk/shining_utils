@@ -66,6 +66,13 @@ def build_arrowhead_lookup(arrow_relationships):
 
 def append_to_annotations(base_anno, dest_dir, anno_file, new_annotations):
     base_anno['relationships'].update(new_annotations)
+    img_const_key = "imageConsts"
+    if img_const_key not in base_anno.keys():
+        base_anno[img_const_key] = {"I0": {"id": "I0"}}
 
+    if not len(new_annotations.keys()) == len(set(new_annotations.keys())):
+        print 'dupe'
     with open(dest_dir + anno_file, 'w') as f:
         json.dump(base_anno, f, indent=4, sort_keys=True)
+
+
