@@ -6,7 +6,6 @@ import os
 import argparse
 import PIL.Image as Image
 
-
 rect_types = ['text', 'arrowHeads']
 poly_types = ['blobs', 'arrows', 'backgroundBlobs']
 
@@ -94,9 +93,9 @@ def visualize_relationships(relationships_to_viz, image_name, output_base_dir, i
     for rel_id, relationship in relationships_to_viz.items():
         open_cv_image = np.array(pil_image) 
         open_cv_image = open_cv_image[:, :, ::-1].copy() 
-        rel_category = relationship['category'].replace('misc', 'textMisc')
+        rel_category = relationship['category']
         if rel_category == 'arrowHeadTail':
-            break
+            continue
         for c_id, constituent in relationship['constituents'].items():
             if constituent['type'] in rect_types:
                 ul, lr = constituent['rectangle']
@@ -116,6 +115,7 @@ def visualize_image_batch(image_dir, annotation_dir, output_dir):
 
 
 def main():
+
     parser = argparse.ArgumentParser(description='Writes an image for each relationship in a directory of annotations')
     parser.add_argument('imgdir', help='path to shining diagram images', type=str)
     parser.add_argument('anndir', help='path to directory with annotations', type=str)
