@@ -42,47 +42,40 @@ def get_category_color(category):
         'sectionTitle': "#ff00ff",
         'imageTitle': "#8256AD",
         'imageCaption': "#ff3300",
-        'textMisc': "#cccc00"
+        'textMisc': "#cccc00",
+        'misc': "#cccc00"
     }
-
     rgb_color = hex_to_rgb(color_map[category])
-    rgb_flipped = rgb_color[::-1]
+    rgb_flipped = rgb_color[::-1]       # Thanks opencv!
     return rgb_flipped
 
 
-def build_relationships_to_draw(image_annotations, image_name):
+def build_relationships_to_draw(image_annotations):
 
-    def flatten_const_dict(image_annotations):
+    def flatten_constituent_dict(image_annotations):
         types_annotated = rect_types + poly_types + ['imageConsts']
         flattened_const_dict = {}
         for anno_type, annotations in image_annotations.items():
-            anno_plus_type = {k: v.update({'type': anno_type}) for k, v in annotations.items()}
+            _ = {k: v.update({'type': anno_type}) for k, v in annotations.items()}
             if anno_type in types_annotated:
                 flattened_const_dict.update(annotations)
         return flattened_const_dict
     
-    flattened_const_dict = flatten_const_dict(image_annotations)
+    flattened_constituent_dict = flatten_constituent_dict(image_annotations)
     relationships_with_props = {}
     for rel_id, relationship in image_annotations['relationships'].items():
         involved_const_ids = rel_id.split('+')
         rel_category = relationship['category']
-
-        try:
-            involved_const = {k: flattened_const_dict[k] for k in involved_const_ids}
-        except KeyError as e:
-            print image_name
-            print e
+        involved_const = {k: flattened_constituent_dict[k] for k in involved_const_ids}
         relationships_with_props[rel_id] = {
             "rel_id": rel_id,
             "category": rel_category,
             "constituents": involved_const
         }
-        
     return relationships_with_props
 
 
 def visualize_relationships(relationships_to_viz, image_name, output_base_dir, image_dir):
-    
     image_result_dir = output_base_dir + image_name.split('.')[0] + '/'
     try:
         os.mkdir(image_result_dir)
@@ -104,25 +97,24 @@ def visualize_relationships(relationships_to_viz, image_name, output_base_dir, i
                 draw_polygon_on_image(open_cv_image, constituent['polygon'], color=get_category_color(rel_category))
         image_path = image_result_dir + rel_category + '_' + rel_id.replace('+', '_') + '.png'
         cv2.imwrite(image_path, open_cv_image)
-
+    
 
 def visualize_image_batch(image_dir, annotation_dir, output_dir):
     for image in glob.glob(annotation_dir + '*'):
         image_name = image.split('.json')[0].split('/')[-1]
         image_annotations = load_local_annotation(image_name, annotation_dir)
-        to_visualize = build_relationships_to_draw(image_annotations, image_name)
+        to_visualize = build_relationships_to_draw(image_annotations)
         visualize_relationships(to_visualize, image_name, output_dir, image_dir)
 
 
 def main():
-
     parser = argparse.ArgumentParser(description='Writes an image for each relationship in a directory of annotations')
     parser.add_argument('imgdir', help='path to shining diagram images', type=str)
-    parser.add_argument('anndir', help='path to directory with annotations', type=str)
+    parser.add_argument('anndir', help='path to annotations', type=str)
     parser.add_argument('outdir', help='directory to write output images', type=str)
     args = parser.parse_args()
     paths = [args.imgdir, args.anndir, args.outdir]
-    paths = [path + '/' for path in paths]
+    paths = map(lambda x: x + '/', paths)
     visualize_image_batch(*paths)
 
 if __name__ == "__main__":

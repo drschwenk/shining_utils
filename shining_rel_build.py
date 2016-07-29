@@ -32,7 +32,7 @@ def build_relationships(rel_dict, arrows_w_heads):
         rel_id = '+'.join([box[1] for box in ordered_boxes])
         new_relationships[rel_id] = {
             'id': rel_id,
-            'category': involved_boxes['category'].replace('I', 'i').replace('misc', 'textMisc'),
+            'category': involved_boxes['category'].replace('I', 'i'),
             'has_directionality': False,
             'origin': ordered_boxes[0][1]
         }
