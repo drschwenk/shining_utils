@@ -5,6 +5,7 @@ import glob
 import os
 import argparse
 import PIL.Image as Image
+from collections import defaultdict
 
 rect_types = ['text', 'arrowHeads']
 poly_types = ['blobs', 'arrows', 'backgroundBlobs']
@@ -27,6 +28,11 @@ def hex_to_rgb(hex_color):
     lv = len(hex_color)
     rgb_color = tuple(int(hex_color[i:i + lv // 3], 16) for i in range(0, lv, lv // 3))
     return rgb_color
+
+
+def random_color():
+    import random
+    return random.randint(0,255), random.randint(0,255), random.randint(0,255)
 
 
 def get_category_color(category):
@@ -75,6 +81,36 @@ def build_relationships_to_draw(image_annotations):
     return relationships_with_props
 
 
+def visualize_relationships_by_type(relationships_to_viz, image_name, output_base_dir, image_dir):
+    image_result_dir = output_base_dir + image_name.split('.')[0] + '/'
+    try:
+        os.mkdir(image_result_dir)
+    except OSError as e:
+        pass
+
+    pil_image = Image.open(image_dir + image_name)
+
+    relations_by_cat = defaultdict(list)
+    for rel_id, relationship in relationships_to_viz.items():
+        relations_by_cat[relationship['category']].append(relationship)
+
+    for relationship_cat, relationships in relations_by_cat.items():
+        open_cv_image = np.array(pil_image)
+        open_cv_image = open_cv_image[:, :, ::-1].copy()
+        if relationship_cat == 'arrowHeadTail':
+            continue
+        for relationship in relationships:
+            color_this_rel = random_color()
+            for c_id, constituent in relationship['constituents'].items():
+                if constituent['type'] in rect_types:
+                    ul, lr = constituent['rectangle']
+                    cv2.rectangle(open_cv_image, tuple(ul), tuple(lr), color=color_this_rel, thickness=2)
+                if constituent['type'] in poly_types:
+                    draw_polygon_on_image(open_cv_image, constituent['polygon'], color=color_this_rel)
+        image_path = image_result_dir + 'all_' + relationship_cat + 's_' + '.png'
+        cv2.imwrite(image_path, open_cv_image)
+
+
 def visualize_relationships(relationships_to_viz, image_name, output_base_dir, image_dir):
     image_result_dir = output_base_dir + image_name.split('.')[0] + '/'
     try:
@@ -104,6 +140,7 @@ def visualize_image_batch(image_dir, annotation_dir, output_dir):
         image_name = image.split('.json')[0].split('/')[-1]
         image_annotations = load_local_annotation(image_name, annotation_dir)
         to_visualize = build_relationships_to_draw(image_annotations)
+        visualize_relationships_by_type(to_visualize, image_name, output_dir, image_dir)
         visualize_relationships(to_visualize, image_name, output_dir, image_dir)
 
 
