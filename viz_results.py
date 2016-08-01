@@ -125,12 +125,30 @@ def visualize_relationships(relationships_to_viz, image_name, output_base_dir, i
         rel_category = relationship['category']
         if rel_category == 'arrowHeadTail':
             continue
-        for c_id, constituent in relationship['constituents'].items():
-            if constituent['type'] in rect_types:
-                ul, lr = constituent['rectangle']
-                cv2.rectangle(open_cv_image, tuple(ul), tuple(lr), color=get_category_color(rel_category), thickness=2)
-            if constituent['type'] in poly_types:
-                draw_polygon_on_image(open_cv_image, constituent['polygon'], color=get_category_color(rel_category))
+        elif rel_category == 'interObjectLinkage':
+            color_defs = {
+                0: (0, 0, 255),
+                1: (0, 255, 0),
+                2: (255, 0, 0)
+            }
+            ordered_const = rel_id.split('+')
+            color_lookup = {}
+            for idx, const in enumerate(ordered_const):
+                color_lookup[const] = color_defs[idx]
+            for c_id, constituent in relationship['constituents'].items():
+
+                if constituent['type'] in rect_types:
+                    ul, lr = constituent['rectangle']
+                    cv2.rectangle(open_cv_image, tuple(ul), tuple(lr), color=color_lookup[c_id], thickness=2)
+                if constituent['type'] in poly_types:
+                    draw_polygon_on_image(open_cv_image, constituent['polygon'], color=color_lookup[c_id])
+        else:
+            for c_id, constituent in relationship['constituents'].items():
+                if constituent['type'] in rect_types:
+                    ul, lr = constituent['rectangle']
+                    cv2.rectangle(open_cv_image, tuple(ul), tuple(lr), color=get_category_color(rel_category), thickness=2)
+                if constituent['type'] in poly_types:
+                    draw_polygon_on_image(open_cv_image, constituent['polygon'], color=get_category_color(rel_category))
         image_path = image_result_dir + rel_category + '_' + rel_id.replace('+', '_') + '.png'
         cv2.imwrite(image_path, open_cv_image)
     
